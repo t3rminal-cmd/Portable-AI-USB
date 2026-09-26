@@ -166,6 +166,30 @@ function Invoke-Download {
     return $true
 }
 
+function Invoke-DownloadWithRetry {
+    # A dropped connection resumes from the .part file after a short pause.
+    # A finished file that fails $Verify is deleted, so the next attempt
+    # starts clean.
+    param([string]$Url, [string]$Dest, [scriptblock]$Verify, [int]$Attempts = 6)
+    $verifyFailed = $false
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        if ($attempt -gt 1) {
+            if ($verifyFailed) {
+                Write-Host "      Downloading again (attempt $attempt of $Attempts)..." -ForegroundColor Yellow
+            } else {
+                Write-Host "      Connection dropped - continuing where it stopped in 10 seconds (attempt $attempt of $Attempts)..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 10
+            }
+        }
+        $verifyFailed = $false
+        if (-not (Invoke-Download -Url $Url -Dest $Dest)) { continue }
+        if (& $Verify $Dest) { return $true }
+        Remove-Item $Dest -Force -ErrorAction SilentlyContinue
+        $verifyFailed = $true
+    }
+    return $false
+}
+
 function Test-GgufHeader {
     param([string]$Path)
     try {
@@ -477,21 +501,18 @@ if (Test-Path $OllamaExe) {
             Write-Host "      WARNING: No published checksum found; the engine's code signature will be checked instead." -ForegroundColor Yellow
         }
 
-        $ok = $false
-        for ($attempt = 1; $attempt -le 2 -and -not $ok; $attempt++) {
-            if ($attempt -gt 1) { Write-Host "      Retrying with a fresh download..." -ForegroundColor Yellow }
-            if (-not (Invoke-Download -Url "$base/$zipName" -Dest $zipPath -Fresh:($attempt -gt 1))) { continue }
-            if ($expected) {
-                Write-Host "      Verifying download (SHA-256)..." -ForegroundColor DarkGray
-                if ((Get-FileSha256 $zipPath) -ine $expected) {
-                    Write-Host "      Checksum mismatch - the download is corrupt." -ForegroundColor Red
-                    Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-                    continue
-                }
-                Write-Host "      Checksum OK." -ForegroundColor Green
+        $verifyZip = {
+            param($path)
+            if (-not $expected) { return $true }
+            Write-Host "      Verifying download (SHA-256)..." -ForegroundColor DarkGray
+            if ((Get-FileSha256 $path) -ine $expected) {
+                Write-Host "      Checksum mismatch - the download is corrupt." -ForegroundColor Red
+                return $false
             }
-            $ok = $true
+            Write-Host "      Checksum OK." -ForegroundColor Green
+            return $true
         }
+        $ok = Invoke-DownloadWithRetry -Url "$base/$zipName" -Dest $zipPath -Verify $verifyZip
 
         if (-not $ok) {
             Write-Host "      ERROR: The Ollama download failed." -ForegroundColor Red
@@ -650,13 +671,12 @@ if ($EngineUp) {
         } else {
             Remove-Item $dest -Force -ErrorAction SilentlyContinue
             Write-Host "      Downloading... This can take a long time. Do NOT close this window." -ForegroundColor Magenta
-            for ($attempt = 1; $attempt -le 2 -and -not $ok; $attempt++) {
-                if ($attempt -gt 1) { Write-Host "      Retrying with a fresh download..." -ForegroundColor Yellow }
-                if (Invoke-Download -Url $m.URL -Dest $dest -Fresh:($attempt -gt 1)) {
-                    $ok = Test-ModelFile -Path $dest -Info $info -MinBytes $m.MinBytes
-                    if (-not $ok) { Remove-Item $dest -Force -ErrorAction SilentlyContinue }
-                }
+            $minBytes = $m.MinBytes
+            $verifyModel = {
+                param($path)
+                Test-ModelFile -Path $path -Info $info -MinBytes $minBytes
             }
+            $ok = Invoke-DownloadWithRetry -Url $m.URL -Dest $dest -Verify $verifyModel
         }
 
         if (-not $ok) {
