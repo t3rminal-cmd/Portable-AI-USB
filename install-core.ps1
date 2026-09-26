@@ -501,10 +501,13 @@ if (Test-Path $OllamaExe) {
             $tarExe = Join-Path $env:SystemRoot 'System32\tar.exe'
             $extracted = $false
             if (Test-Path $tarExe) {
-                & $tarExe -xf $zipPath -C $OllamaDir
+                # -m: don't restore file times. exFAT drives reject some of the
+                # zip's timestamps ("Can't restore time"), which made tar fail.
+                & $tarExe -xmf $zipPath -C $OllamaDir
                 $extracted = ($LASTEXITCODE -eq 0)
             }
             if (-not $extracted) {
+                Write-Host "      Trying the slower built-in unzip instead (can take 10+ minutes)..." -ForegroundColor Yellow
                 try {
                     Expand-Archive -Path $zipPath -DestinationPath $OllamaDir -Force -ErrorAction Stop
                     $extracted = $true
