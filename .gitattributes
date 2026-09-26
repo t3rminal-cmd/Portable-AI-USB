@@ -1,0 +1,5 @@
+# Windows scripts are stored with CRLF line endings so they work however the
+# repo is downloaded (ZIP, raw file or git clone). cmd.exe can misread batch
+# files with Unix (LF) line endings.
+*.bat -text
+*.ps1 -text
