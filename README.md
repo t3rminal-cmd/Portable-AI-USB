@@ -68,7 +68,8 @@ Replies take roughly 10 to 30 seconds on a typical CPU. A PC with a recent NVIDI
 | "These files are on C:" | You ran it from your PC's own drive. Copy the files to the USB first. |
 | "AnythingLLM was installed on this PC instead of the USB" | Uninstall AnythingLLM under Settings > Apps, run `install.bat` again and choose the USB folder in the installer. |
 | "Port 11435 is already in use" | Another program uses that port. Close it or restart the PC, then try again. |
-| "The AI engine did not start" | The last lines of `ollama\server.log` are shown. Common causes: not enough free RAM, or antivirus blocking `ollama.exe`. |
+| "Waiting for the AI engine..." takes a long time | Normal on the first start from a USB drive: the engine loads its graphics-card files and antivirus scans them. It waits up to 10 minutes. Later starts are faster. |
+| "The AI engine stopped unexpectedly" or "did not answer within 10 minutes" | The last lines of `ollama\server.log` are shown. Common causes: not enough free RAM, or antivirus blocking `ollama.exe`. |
 | "JavaScript error" when AnythingLLM opens | Close it and run `start-windows.bat` again. The launcher clears the old PC's cached paths. |
 | No models in AnythingLLM | Run `install.bat` again and pick a model. |
 | Many lines like `lib/ollama/...: Can't restore time: Invalid argument` | You have an older copy of the scripts. The files were unpacked, but setup then switched to a much slower unzip. Let that finish if it's running. If it failed or you closed it, delete the `ollama` folder on the USB, [update the scripts](#updating-the-scripts) and run `install.bat` again. |

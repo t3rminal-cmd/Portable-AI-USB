@@ -128,16 +128,35 @@ function Start-UsbOllama {
         $env:USERPROFILE = $savedProfile
     }
 
-    $deadline = (Get-Date).AddSeconds(90)
+    # Ollama opens its port at once but only answers after it has checked the
+    # graphics card, which loads several hundred MB of GPU libraries. From a
+    # slow USB drive - with antivirus scanning each file the first time - that
+    # can take minutes, so keep waiting while the engine is still running.
+    Write-Host "  Waiting for the AI engine (the first start from a USB drive can take a few minutes)" -NoNewline
+    $deadline = (Get-Date).AddMinutes(10)
+    $nextDot = Get-Date
     while ((Get-Date) -lt $deadline) {
-        if (Test-OllamaReady) { return $proc }
+        if (Test-OllamaReady) {
+            Write-Host " ready." -ForegroundColor Green
+            return $proc
+        }
         if ($proc.HasExited) { break }
+        if ((Get-Date) -ge $nextDot) {
+            Write-Host "." -NoNewline
+            $nextDot = (Get-Date).AddSeconds(5)
+        }
         Start-Sleep -Milliseconds 500
     }
+    Write-Host ""
 
+    if ($proc.HasExited) {
+        $reason = "The AI engine stopped unexpectedly (exit code $($proc.ExitCode))."
+    } else {
+        $reason = "The AI engine did not answer within 10 minutes."
+    }
     Stop-ProcessTree $proc
     $tail = Get-Content $OllamaLog -Tail 15 -ErrorAction SilentlyContinue
-    throw ("The AI engine did not start. Last lines of ollama\server.log:`n" + ($tail -join "`n"))
+    throw ("$reason Last lines of ollama\server.log:`n" + ($tail -join "`n"))
 }
 
 function Get-EnvValue {
