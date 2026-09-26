@@ -1,31 +1,35 @@
 @echo off
-title Portable AI - Multi-Model Setup
+setlocal
+title Portable AI - Setup
 color 0E
 
 echo ===================================================
-echo     PORTABLE UNCENSORED AI - USB SETUP             
+echo     PORTABLE AI - USB SETUP (Windows)
 echo ===================================================
 echo.
-echo This will download and configure AI models onto
-echo your USB drive. You'll get to CHOOSE which models
-echo to install from a curated list.
+echo This downloads the AI engine, the chat app and the
+echo AI model(s) you choose onto this drive.
 echo.
-echo  - 6 preset models (uncensored + standard)
-echo  - Custom model support (bring your own GGUF)
-echo  - Minimum USB space: 16 GB (32 GB recommended)
-echo.
-echo Make sure you have a good internet connection!
+echo  - Drive must be exFAT or NTFS (not FAT32)
+echo  - Minimum free space: 16 GB (32 GB recommended)
+echo  - Needs a good internet connection for setup only
 echo.
 pause
 
-:: Run the PowerShell setup script from the same folder as this bat file
-powershell -ExecutionPolicy Bypass -File "%~dp0install-core.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-core.ps1"
+set "RESULT=%ERRORLEVEL%"
 
 echo.
-echo ===================================================
-echo     SETUP COMPLETE! You're ready to go!            
-echo ===================================================
-echo.
-echo To start your AI, double-click start-windows.bat
+if "%RESULT%"=="0" (
+    echo ===================================================
+    echo     SETUP COMPLETE - double-click start-windows.bat
+    echo ===================================================
+) else (
+    echo ===================================================
+    echo     SETUP DID NOT FINISH - see the messages above.
+    echo     Run install.bat again to continue.
+    echo ===================================================
+)
 echo.
 pause
+exit /b %RESULT%
