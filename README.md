@@ -35,7 +35,7 @@ It uses two programs, both kept on the USB:
 6. **Install AnythingLLM onto the USB.** Partway through, the AnythingLLM installer opens:
    - When it asks where to install, choose the `anythingllm` folder on your USB, for example `E:\anythingllm`. The setup window shows the exact path.
    - At the end, **untick "Run AnythingLLM"** and click Finish.
-7. **Wait for the downloads.** Leave the window open. If the internet drops or you close the window, run `install.bat` again: finished steps are skipped and downloads continue where they stopped.
+7. **Wait for the downloads.** Leave the window open. The AI engine is about 2 GB and takes a few minutes to unpack onto the USB; the window can look idle while it does. If the internet drops or you close the window, run `install.bat` again: finished steps are skipped and downloads continue where they stopped.
 
 When it says **SETUP COMPLETE**, you're done. If it says **SETUP FINISHED WITH PROBLEMS**, it lists what failed and why. Fix that and run `install.bat` again.
 
@@ -71,6 +71,18 @@ Replies take roughly 10 to 30 seconds on a typical CPU. A PC with a recent NVIDI
 | "The AI engine did not start" | The last lines of `ollama\server.log` are shown. Common causes: not enough free RAM, or antivirus blocking `ollama.exe`. |
 | "JavaScript error" when AnythingLLM opens | Close it and run `start-windows.bat` again. The launcher clears the old PC's cached paths. |
 | No models in AnythingLLM | Run `install.bat` again and pick a model. |
+| Many lines like `lib/ollama/...: Can't restore time: Invalid argument` | You have an older copy of the scripts. The files were unpacked, but setup then switched to a much slower unzip. Let that finish if it's running. If it failed or you closed it, delete the `ollama` folder on the USB, [update the scripts](#updating-the-scripts) and run `install.bat` again. |
+| Setup seems stuck on "Extracting" | Unpacking the engine takes a few minutes on a USB drive. If it says "Trying the slower built-in unzip instead", it can take 10 minutes or more. Don't close the window. |
+| Antivirus blocks or deletes `ollama.exe` | Allow it in your antivirus. It's the official, digitally signed Ollama engine, and setup checks its checksum. Then run `install.bat` again. |
+
+## Updating the scripts
+
+To get a newer version of these scripts without losing your models or chats:
+
+1. Download the latest ZIP from this repo (**Code > Download ZIP**) and unzip it.
+2. Copy only these files onto the USB, replacing the old ones: `install.bat`, `start-windows.bat`, `install-core.ps1`, `start-core.ps1`, `common.ps1`, and `README.md`.
+
+Don't delete the `ollama`, `models`, `anythingllm` or `anythingllm_data` folders. They hold your engine, your models, the chat app and your chats.
 
 ## What's on the USB after setup
 
@@ -99,6 +111,7 @@ USB Drive\
 - **About half the disk space per model.** After a model is imported into the engine, the downloaded copy is deleted. Before, every model was stored twice.
 - **Safer setup.** Setup stops on FAT32 drives, warns when run from the PC's own drive, warns when space is low, and detects when AnythingLLM was installed on the PC instead of the USB.
 - Files are written without a byte-order mark (BOM) so the default model name isn't corrupted. Batch files use Windows line endings. ARM64 Windows PCs get the ARM64 engine.
+- **Unpacking works on exFAT.** The engine is unpacked without restoring file dates, which exFAT drives rejected ("Can't restore time").
 
 ## License
 
